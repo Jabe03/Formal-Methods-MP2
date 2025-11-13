@@ -191,6 +191,8 @@ function insert(x: int, l: List<int>) :List<int>
 
   requires isIncreasing(l)
   ensures x in elements(insert(x,l))
+  ensures elements(l) <= elements(insert(x,l))
+  ensures isIncreasing(insert(x,l))
  
 {
   match l
@@ -205,13 +207,27 @@ function insert(x: int, l: List<int>) :List<int>
 
 
 function remove(x: int, l:List<int>) :List<int>
+  requires isIncreasing(l)
+  ensures x !in elements(remove(x,l))
+  ensures elements(remove(x,l)) <= elements(l)
+  ensures len(remove(x,l)) == len(l) 
+       || len(remove(x,l)) == len(l) - 1 
+  ensures isIncreasing(remove(x,l))
 {
   match l
   case Nil => Nil
   case Cons(y, t) => 
     if x < y then 
+      assert isIncreasing(l);
+      assert !isEmpty(l);
+      Increasing1(l);
+      Increasing2(l);
       l 
     else if y == x then 
+      assert isIncreasing(l);
+      assert !isEmpty(l);
+      Increasing1(l);
+      Increasing2(l);
       t
     else
       Cons(y, remove(x, t))
@@ -220,30 +236,69 @@ function remove(x: int, l:List<int>) :List<int>
 //--------
 // Lemmas
 //--------
-
+// case Cons(x, Cons(y, t)) => 
+//     if x < y then 
+//       max(Cons(y, t)) 
+//     else 
+//       max(Cons(x, t))
 lemma {:induction false} MaxLast(l: List<int>)
   requires !isEmpty(l)
   requires isIncreasing(l)
   ensures max(l) == last(l)
+  {
+    match l 
+    case Cons(y, Nil) => 
+    case Cons(y, Cons(x, t)) => 
+    if x < y {
+      calc {
+        max(l);
+        max(Cons(y,t));
+        {MaxLast(Cons(y,t));}
+        last(l);
 
+      }
+    }
+    else {
+      calc {
+        max(l);
+        max(Cons(x,t));
+        {MaxLast(Cons(x,t));}
+        last(l);
+
+      }
+    }
+
+  }
 
 lemma {:induction false} MinFirst(l: List<int>)
   requires !isEmpty(l)
   requires isIncreasing(l)
   ensures min(l) == first(l)
 
-
+ghost predicate isIncreasing'(l: List<int>)
+{
+  match l
+  case Cons(a, Cons(b, t)) => a < b 
+        && isIncreasing(Cons(b, t))
+  case _ => true
+}
 lemma {:induction false} Increasing1(l: List<int>)
   requires isIncreasing(l)
   requires !isEmpty(l)
-  ensures forall x :: x in elements(l.tail) ==> first(l) < x
+  ensures forall x :: 
+        x in elements(l.tail) ==> first(l) < x
+  {
 
+  }
 
 lemma {:induction false} Increasing2(l: List<int>)
   requires isIncreasing(l)
   requires !isEmpty(l)
-  ensures forall x :: x < first(l) ==> x !in elements(rest(l))
-
+  ensures forall x :: 
+    x < first(l) ==> x !in elements(rest(l))
+  {
+    
+  }
 
 lemma {:induction false} AppendIncreasing(l1: List<int>, l2:List<int>)
   requires isIncreasing(l1)
