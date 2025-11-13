@@ -236,11 +236,7 @@ function remove(x: int, l:List<int>) :List<int>
 //--------
 // Lemmas
 //--------
-// case Cons(x, Cons(y, t)) => 
-//     if x < y then 
-//       max(Cons(y, t)) 
-//     else 
-//       max(Cons(x, t))
+
 lemma {:induction false} MaxLast(l: List<int>)
   requires !isEmpty(l)
   requires isIncreasing(l)
@@ -274,21 +270,48 @@ lemma {:induction false} MinFirst(l: List<int>)
   requires !isEmpty(l)
   requires isIncreasing(l)
   ensures min(l) == first(l)
+    {
+    match l 
+    case Cons(y, Nil) => 
+    case Cons(y, Cons(x, t)) => 
+    if x > y {
+      calc {
+        min(l);
+        min(Cons(y,t));
+        {MinFirst(Cons(x,t));}
+        first(l);
 
-ghost predicate isIncreasing'(l: List<int>)
-{
-  match l
-  case Cons(a, Cons(b, t)) => a < b 
-        && isIncreasing(Cons(b, t))
-  case _ => true
-}
+      }
+    }
+    else {
+      calc {
+        min(l);
+        min(Cons(x,t));
+        first(l);
+
+      }
+    }
+
+  }
+
+// ghost predicate isIncreasing(l: List<int>)
+// {
+//   match l
+//   case Cons(a, Cons(b, t)) => a < b 
+//         && isIncreasing(Cons(b, t))
+//   case _ => true
+// }
 lemma {:induction false} Increasing1(l: List<int>)
   requires isIncreasing(l)
   requires !isEmpty(l)
   ensures forall x :: 
         x in elements(l.tail) ==> first(l) < x
   {
-
+    match l 
+    case Cons(x, Nil) =>
+    case Cons(x, Cons(y, t)) =>
+      Increasing1(Cons(y, t));
+      // a in elements(t) ==> y < a
   }
 
 lemma {:induction false} Increasing2(l: List<int>)
@@ -296,16 +319,116 @@ lemma {:induction false} Increasing2(l: List<int>)
   requires !isEmpty(l)
   ensures forall x :: 
     x < first(l) ==> x !in elements(rest(l))
-  {
-    
+   {
+    match l 
+    case Cons(x, Nil) =>
+    case Cons(x, Cons(y, t)) =>
+      Increasing1(Cons(y, t));
+      // contrapositive
   }
+
 
 lemma {:induction false} AppendIncreasing(l1: List<int>, l2:List<int>)
   requires isIncreasing(l1)
   requires isIncreasing(l2)
   requires isEmpty(l1) || isEmpty(l2) || last(l1) < first(l2) 
   ensures isIncreasing(append(l1, l2))
+{
 
+  if isEmpty(l1){
 
+  } else  { 
+    // Both other cases lead to this result, 
+    // relying on the isEmpty(l1) case
+    match l1 
+      case Cons(h, t) =>
+        AppendIncreasing(t, l2);
+      case Nil =>  AppendIncreasing(Nil, l2);
+
+  }
+}
+// function append<T>(l1: List<T>, l2:List<T>): List<T>
+//   ensures elements(l1) + elements(l2) == elements(append(l1,l2))
+// {
+//   match l1
+//   case Nil => l2
+//   case Cons(h1, t1) => Cons(h1, append(t1, Nil))
+// }
+lemma {:induction false} appendIdent<T>(l1: List<T>)
+ensures append(l1, Nil) == l1
+{
+  match l1
+  case Nil =>
+  case Cons(h, t) => 
+  calc {
+      append(l1, Nil);
+      append(Cons(h, t), Nil);
+      Cons(h, append(t, Nil));
+      {appendIdent(t);}
+      l1;
+
+  }
+}
+lemma {:induction false} AppendAssociative<T>(l1: List<T>, l2: List<T>, l3: List<T>)
+  ensures append(append(l1, l2), l3) == append(l1, append(l2, l3))
+{
+    match l1
+    case Nil =>
+    case Cons(h1, t1) =>
+        calc {
+            append(append(l1, l2), l3);
+        == 
+            append(append(Cons(h1, t1), l2), l3);
+        == 
+            append(  Cons(h1, append(t1, l2)) , l3);
+        == 
+            Cons(h1, append(append(t1, l2), l3));
+        == 
+            {AppendAssociative(t1,l2,l3);}
+
+            append(l1, append(l2, l3));
+        }
+}
+// R([1,2,3]+[4,5,6]) ==> R[4,5,6] + R[1,2,3] ==> 
+//  [6,5,4] + [3,2,1] ==> [6,5,4,3,2,1]
 lemma {:induction false} AppendReverse<T>(l1: List<T>, l2: List<T>)
   ensures reverse(append(l1, l2)) == append(reverse(l2), reverse(l1))
+{
+  match l1
+  case Nil =>{
+    match l2 
+      case Nil =>
+      case Cons(h2, t2) => 
+          calc {
+            reverse(append(l1, l2)) ;
+            reverse(append(Nil, l2)) ;
+            reverse(l2);
+            {appendIdent(reverse(l2));}
+            append(reverse(l2), Nil);
+            append(reverse(l2), reverse(l1));
+          }
+  }
+  case Cons(h1, t1) =>{
+      match l2 
+      case Nil => 
+      calc {
+            reverse(append(l1, l2)) ;
+            reverse(append(l1, Nil)) ;
+            {appendIdent(l1);}
+            reverse(l1);
+            append(Nil, reverse(l1));
+            append(reverse(l2), reverse(l1));
+          }
+      case Cons(h2, t2) => 
+      calc {
+        reverse(append(l1, l2));
+        reverse(append(Cons(h1, t1), l2));
+        append(reverse(append(t1, l2)), Cons(h1,Nil));
+        {AppendReverse(t1, l2);}
+        append(append(reverse(l2), reverse(t1)), Cons(h1,Nil));
+        {AppendAssoc(reverse(l2), reverse(t1), Cons(h1,Nil));}
+        append(reverse(l2), append(reverse(t1), Cons(h1,Nil)));
+        append(reverse(l2), reverse(l1));
+      }
+  }
+}
