@@ -25,10 +25,13 @@ ghost function elements<T>(l: List<T>): set<T>
 // isEmpty(l) is true exactly when l is the empty list
 ghost predicate isEmpty<T>(l: List<T>)
 {
+
+  //len(l) == 1 ==> l != Nil
   l == Nil
 }
-
+// append ([1,2], [2,3]) = [1,2,2,3] (contract accepts [1,2,1,3])
 function append<T>(l1: List<T>, l2:List<T>): List<T>
+  ensures elements(l1) + elements(l2) == elements(append(l1,l2))
 {
   match l1
   case Nil => l2
@@ -36,6 +39,7 @@ function append<T>(l1: List<T>, l2:List<T>): List<T>
 }
 
 function reverse<T>(l: List<T>): List<T>
+  ensures elements(l) == elements(reverse(l))
 {
   match l
   case Nil => Nil
@@ -57,6 +61,7 @@ method testAppendReverse()
  
 
 function len<T>(l: List<T>): int
+  ensures len(l) >= |elements(l)| >= 0
 {
   match l
   case Nil => 0
@@ -65,18 +70,28 @@ function len<T>(l: List<T>): int
 
 
 function first<T>(l: List<T>): T
+  requires !isEmpty(l)
+  ensures first(l) in elements(l)
 {
   l.head
 }
 
 
 function rest<T>(l: List<T>): List<T>
+  requires !isEmpty(l)
+  ensures elements(rest(l)) <= elements(l)
 {
   l.tail
 }
 
 
-function last<T>(l: List<T>): T
+function last<T>(l: List<T>): T 
+  requires l != Nil
+{
+ match l 
+ case Cons( a, Nil) => a
+ case Cons( _, t) => last(t)
+}
 
 method testLast()
 {
@@ -101,6 +116,10 @@ predicate member<T(==)>(x: T, l: List<T>)
 //-----------
 
 function max(l: List<int>): int
+  requires !isEmpty(l)
+  ensures max(l) in elements(l)
+  ensures forall i :: (i in elements(l) ==> max(l) >= i)
+  decreases rest(l)
 {
   match l
   case Cons(x, Nil) => x
@@ -119,6 +138,19 @@ method testMax()
 
 
 function min(l: List<int>): int
+  requires !isEmpty(l)
+  ensures min(l) in elements(l)
+  ensures forall i :: (i in elements(l) ==> min(l) <= i)
+  decreases rest(l)
+{
+  match l
+  case Cons(x, Nil) => x
+  case Cons(x, Cons(y, t)) => 
+    if x > y then 
+      min(Cons(y, t)) 
+    else 
+      min(Cons(x, t))
+}
 
 
 method testMin()
@@ -140,9 +172,36 @@ ghost predicate isIncreasing(l: List<int>)
 }
 
 predicate memberInc(x: int, l: List<int>)
+  requires isIncreasing(l)
+  ensures memberInc(x, l) ==> x in elements(l)
+  ensures x in elements(l) ==> memberInc(x, l)
+{
+  match l
+  case Nil => false
+  case Cons(y, t)=> 
+  if y > x 
+    then 
+    assert !memberInc(x, t);
+    false 
+    else x == y || memberInc(x, t)
+}
 
 
-function insert(x: int, l: List<int>) :List<int>
+function insert(x: int, l: List<int>) :List<int> 
+
+  requires isIncreasing(l)
+  ensures x in elements(insert(x,l))
+ 
+{
+  match l
+  case Nil => Cons(x, Nil)
+  case Cons(y, t)=> 
+  if y < x 
+    then 
+    Cons(y, insert(x, t)) 
+    else 
+    if y == x then Cons(y, t) else Cons(x, Cons(y,t))
+}
 
 
 function remove(x: int, l:List<int>) :List<int>
