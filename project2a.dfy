@@ -426,7 +426,7 @@ lemma {:induction false} AppendReverse<T>(l1: List<T>, l2: List<T>)
         append(reverse(append(t1, l2)), Cons(h1,Nil));
         {AppendReverse(t1, l2);}
         append(append(reverse(l2), reverse(t1)), Cons(h1,Nil));
-        {AppendAssoc(reverse(l2), reverse(t1), Cons(h1,Nil));}
+        {AppendAssociative(reverse(l2), reverse(t1), Cons(h1,Nil));}
         append(reverse(l2), append(reverse(t1), Cons(h1,Nil)));
         append(reverse(l2), reverse(l1));
       }
