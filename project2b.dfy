@@ -16,6 +16,26 @@ module List {
 
   datatype List<T> = Nil | Cons(head: T, tail: List<T>) 
 
+  ghost function elements<T>(l: List<T>): set<T>
+  {
+    match l
+    case Nil => {}
+    case Cons(x, t) => {x} + elements(t)  
+  }
+  function append<T>(l1: List<T>, l2:List<T>): List<T>
+    ensures elements(l1) + elements(l2) == elements(append(l1,l2))
+  {
+    match l1
+    case Nil => l2
+    case Cons(h1, t1) => Cons(h1, append(t1, l2))
+  }
+  
+ghost predicate isIncreasing(l: List<int>)
+{
+  match l
+  case Cons(a, Cons(b, t)) => a < b && isIncreasing(Cons(b, t))
+  case _ => true
+}
   // Add here functions and lemmas from Part A as explained 
   // in the assignment. 
 }
