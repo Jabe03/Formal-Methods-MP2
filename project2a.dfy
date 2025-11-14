@@ -4,7 +4,7 @@
 //
 // Mini project 2 -- Part A
 //
-// Name(s):  
+// Name(s): Mitchell Piehl and Josh Bergthold
 //
 //===============================================
 
@@ -87,6 +87,7 @@ function rest<T>(l: List<T>): List<T>
 
 function last<T>(l: List<T>): T 
   requires l != Nil
+  ensures last(l) in elements(l)
 {
  match l 
  case Cons( a, Nil) => a
