@@ -36,6 +36,122 @@ ghost predicate isIncreasing(l: List<int>)
   case Cons(a, Cons(b, t)) => a < b && isIncreasing(Cons(b, t))
   case _ => true
 }
+
+function max(l: List<int>): int
+  requires !isEmpty(l)
+  ensures max(l) in elements(l)
+  ensures forall i :: (i in elements(l) ==> max(l) >= i)
+  decreases rest(l)
+{
+  match l
+  case Cons(x, Nil) => x
+  case Cons(x, Cons(y, t)) => 
+    if x < y then 
+      max(Cons(y, t)) 
+    else 
+      max(Cons(x, t))
+}
+function rest<T>(l: List<T>): List<T>
+  requires !isEmpty(l)
+  ensures elements(rest(l)) <= elements(l)
+{
+  l.tail
+}
+ghost predicate isEmpty<T>(l: List<T>)
+{
+
+  //len(l) == 1 ==> l != Nil
+  l == Nil
+}
+
+lemma {:induction false} MaxLast(l: List<int>)
+  requires !isEmpty(l)
+  requires isIncreasing(l)
+  ensures max(l) == last(l)
+  {
+    match l 
+    case Cons(y, Nil) => 
+    case Cons(y, Cons(x, t)) => 
+    if x < y {
+      calc {
+        max(l);
+        max(Cons(y,t));
+        {MaxLast(Cons(y,t));}
+        last(l);
+
+      }
+    }
+    else {
+      calc {
+        max(l);
+        max(Cons(x,t));
+        {MaxLast(Cons(x,t));}
+        last(l);
+
+      }
+    }
+
+  }
+
+lemma {:induction false} MinFirst(l: List<int>)
+  requires !isEmpty(l)
+  requires isIncreasing(l)
+  ensures min(l) == first(l)
+    {
+    match l 
+    case Cons(y, Nil) => 
+    case Cons(y, Cons(x, t)) => 
+    if x > y {
+      calc {
+        min(l);
+        min(Cons(y,t));
+        {MinFirst(Cons(x,t));}
+        first(l);
+
+      }
+    }
+    else {
+      calc {
+        min(l);
+        min(Cons(x,t));
+        first(l);
+
+      }
+    }
+
+  }
+  function first<T>(l: List<T>): T
+  requires !isEmpty(l)
+  ensures first(l) in elements(l)
+{
+  l.head
+}
+
+function min(l: List<int>): int
+  requires !isEmpty(l)
+  ensures min(l) in elements(l)
+  ensures forall i :: (i in elements(l) ==> min(l) <= i)
+  decreases rest(l)
+{
+  match l
+  case Cons(x, Nil) => x
+  case Cons(x, Cons(y, t)) => 
+    if x > y then 
+      min(Cons(y, t)) 
+    else 
+      min(Cons(x, t))
+}
+
+
+
+function last<T>(l: List<T>): T 
+  requires l != Nil
+{
+ match l 
+ case Cons( a, Nil) => a
+ case Cons( _, t) => last(t)
+}
+
   // Add here functions and lemmas from Part A as explained 
   // in the assignment. 
 }
@@ -69,6 +185,7 @@ ghost predicate IsSearchTree(t: BTree)
 }
 
 function collect(t: BTree): List.List<int>
+  ensures elements(t) == List.elements(collect(t))
 {
   match t
   case Leaf => List.Nil
@@ -76,11 +193,32 @@ function collect(t: BTree): List.List<int>
     List.append(collect(l), List.Cons(y, collect(r)))
 }
 
+lemma {:induction false} AppendIncreasing(l1 : List.List<int>, l2 : List.List<int>)
+  requires List.isIncreasing(l1)
+  requires List.isIncreasing(l2)
+  requires !List.isEmpty(l1)
+  requires !List.isEmpty(l2)
+  requires List.max(l1) < List.min(l2)
+  ensures List.isIncreasing(List.append(l1,l2))
 
+  {
+    match l1 
+    case Cons(a, Nil) =>
+    case Cons(a, t) => 
+    AppendIncreasing(t, l2);
+  }
 lemma {:induction false} Increasing(t: BTree)
   requires IsSearchTree(t)
   ensures List.isIncreasing(collect(t))
 {
+  match t
+  case Leaf =>
+  case Node( Leaf, v, Leaf) => 
+  case Node( Leaf, v, r) => {Increasing(r);}
+  case Node( l, v, r) => 
+  Increasing(r);
+  Increasing(l);
+  AppendIncreasing(collect(l), List.Cons(v,  collect(r)));
 }
 
 function member(x: int, t: BTree): bool
