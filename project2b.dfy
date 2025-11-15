@@ -263,6 +263,15 @@ function remove(x: int, t: BTree): BTree
 
 
 function max(t: BTree): int
+  requires !isEmpty(t)
+  requires IsSearchTree(t)
+  ensures max(t) in elements(t)
+  ensures forall i :: (i in elements(t) ==> max(t) >= i)
+{
+  match t
+  case Node(l, v, r) =>
+    if r == Leaf then v else max(r)
+}
 
 
 function pred(x: int, t: BTree): int
