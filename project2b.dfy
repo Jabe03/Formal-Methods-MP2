@@ -36,6 +36,13 @@ ghost predicate isIncreasing(l: List<int>)
   case Cons(a, Cons(b, t)) => a < b && isIncreasing(Cons(b, t))
   case _ => true
 }
+function len<T>(l: List<T>): int
+  ensures len(l) >= |elements(l)| >= 0
+{
+  match l
+  case Nil => 0
+  case Cons(_, t) => 1 + len(t)
+}
 
 function max(l: List<int>): int
   requires !isEmpty(l)
@@ -204,8 +211,7 @@ lemma {:induction false} AppendIncreasing(l1 : List.List<int>, l2 : List.List<in
   {
     match l1 
     case Cons(a, Nil) =>
-    case Cons(a, t) => 
-    AppendIncreasing(t, l2);
+    case Cons(a, t) => AppendIncreasing(t, l2);
   }
 lemma {:induction false} Increasing(t: BTree)
   requires IsSearchTree(t)
@@ -216,12 +222,14 @@ lemma {:induction false} Increasing(t: BTree)
   case Node( Leaf, v, Leaf) => 
   case Node( Leaf, v, r) => {Increasing(r);}
   case Node( l, v, r) => 
-  Increasing(r);
-  Increasing(l);
-  AppendIncreasing(collect(l), List.Cons(v,  collect(r)));
+    Increasing(r);
+    Increasing(l);
+    AppendIncreasing(collect(l), List.Cons(v,  collect(r)));
 }
 
 function member(x: int, t: BTree): bool
+  requires IsSearchTree(t)
+  ensures member(x,t) == (x in elements(t))
 {
   match t
   case Leaf => false
@@ -235,6 +243,9 @@ function member2(x: int, t: BTree): bool
 
 
 function insert(x: int, t: BTree): BTree
+  requires IsSearchTree(t)
+  ensures x in elements(insert(x, t))
+  ensures elements(t) <= elements(insert(x, t))
 {
   match t
   case Leaf => Node(Leaf, x, Leaf)
@@ -245,12 +256,17 @@ function insert(x: int, t: BTree): BTree
 }
 
 function remove(x: int, t: BTree): BTree
+  requires IsSearchTree(t)
+  ensures elements(remove(x,t)) == elements(t) - {x}
+  decreases t, x
 {
   match t
   case Leaf => t
   case Node(l, y, r) =>
-    if x < y then Node(remove(x, l), y, r)
-    else if x > y then Node(l, y, remove(x, r))
+    if x < y then 
+    Node(remove(x, l), y, r)
+    else if x > y then 
+    Node(l, y, remove(x, r))
     else // x == y
       match (l, r) 
       case (Leaf, Leaf) => Leaf
@@ -266,6 +282,14 @@ function max(t: BTree): int
 
 
 function pred(x: int, t: BTree): int
+  requires IsSearchTree(t)
+  ensures pred(x,t) <= x
+  ensures pred(x,t) == x || pred(x,t) in elements(t)
+  ensures (forall a :: (a in elements(t) ==> a > x)) ==> pred(x,t) == x
+  ensures (exists a :: (a in elements(t)) && a < x) ==> 
+    (( pred(x,t) in elements(t)) 
+    && pred(x,t) < x
+    &&  (forall a :: (a in elements(t) && a < x) ==> (pred(x,t) >= a)))
 {
   match t
   case Leaf => x
